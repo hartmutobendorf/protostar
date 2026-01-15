@@ -412,7 +412,7 @@
                                     },
                                     {
                                         "component": "text",
-                                        "output": "Tag '{{tag}}' has been {{action}}ed to machine {{systemId}}"
+                                        "output": "Tag '{{tag}}' has been actioned for machine {{systemId}}"
                                     }
                                 ],
                                 "else": {
