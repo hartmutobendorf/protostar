@@ -1,298 +1,410 @@
 {
-    "welcome": "Welcome to TaskTrack CLI! Type 'help' to see available commands.",
-    "variables": {
-        "isLoggedIn": "false"
-    },
+    "welcome": "Welcome to Netplan CLI! Type 'help' to see available commands.",
+    "variables": {},
     "commands": {
-        "login": {
-            "description": "Log in to TaskTrack",
+        "help": {
+            "description": "Show this help message",
+            "options": {
+                "help": {
+                    "alias": "h",
+                    "description": "Show this help message",
+                    "type": "boolean"
+                }
+            },
+            "handler": {
+                "component": "text",
+                "output": "netplan - Network configuration in YAML\n\nAvailable commands:\n  help      Show this help message\n  apply     Apply current netplan config to running system\n  generate  Generate backend config from netplan YAML files\n  get       Get a setting from netplan configuration\n  set       Add new setting by specifying a dotted key=value pair\n  info      Show available netplan features\n  ip        Retrieve IP information from the system\n  status    Query networking state of the running system\n  try       Try to apply a new netplan config with automatic rollback\n  rebind    Rebind SR-IOV virtual functions to their driver\n\nUse 'netplan COMMAND --help' for more information on a specific command."
+            }
+        },
+        "apply": {
+            "description": "Apply current netplan config to running system",
+            "options": {
+                "help": {
+                    "alias": "h",
+                    "description": "Print basic help",
+                    "type": "boolean"
+                },
+                "debug": {
+                    "description": "Print debugging output during the process",
+                    "type": "boolean"
+                },
+                "sriov-only": {
+                    "description": "Only apply SR-IOV configuration",
+                    "type": "boolean"
+                },
+                "only-ovs-cleanup": {
+                    "description": "Only cleanup Open vSwitch configuration",
+                    "type": "boolean"
+                },
+                "state": {
+                    "description": "Directory containing previous YAML state for diff",
+                    "type": "string"
+                }
+            },
             "handler": [
                 {
-                    "component": "input",
-                    "name": "username",
-                    "message": "Enter your username:"
+                    "component": "spinner",
+                    "output": [
+                        "Generating backend configuration",
+                        "Applying configuration to systemd-networkd",
+                        "Reloading network services"
+                    ],
+                    "duration": 2000,
+                    "conclusion": "succeed"
                 },
                 {
-                    "component": "password",
-                    "name": "password",
-                    "message": "Enter your password:"
+                    "component": "text",
+                    "output": "Network configuration applied successfully."
+                }
+            ]
+        },
+        "generate": {
+            "description": "Generate backend config from netplan YAML files",
+            "options": {
+                "help": {
+                    "alias": "h",
+                    "description": "Print basic help",
+                    "type": "boolean"
+                },
+                "debug": {
+                    "description": "Print debugging output during the process",
+                    "type": "boolean"
+                },
+                "root-dir": {
+                    "description": "Read configuration from this root directory instead of /",
+                    "type": "string",
+                    "requiresArg": true
+                },
+                "mapping": {
+                    "description": "Show internal device mapping information",
+                    "type": "string",
+                    "requiresArg": true
+                }
+            },
+            "handler": [
+                {
+                    "component": "spinner",
+                    "output": "Generating backend configuration from YAML files...",
+                    "duration": 1500,
+                    "conclusion": "succeed"
+                },
+                {
+                    "component": "text",
+                    "output": "Configuration generated successfully in /run/systemd/network/"
+                }
+            ]
+        },
+        "get": {
+            "description": "Get a setting from netplan configuration",
+            "positional": {
+                "key": {
+                    "description": "The configuration key to retrieve (default: all)",
+                    "type": "string"
+                }
+            },
+            "options": {
+                "help": {
+                    "alias": "h",
+                    "description": "Print basic help",
+                    "type": "boolean"
+                },
+                "debug": {
+                    "description": "Print debugging output during the process",
+                    "type": "boolean"
+                },
+                "root-dir": {
+                    "description": "Read configuration from this root directory instead of /",
+                    "type": "string",
+                    "requiresArg": true
+                }
+            },
+            "handler": [
+                {
+                    "component": "spinner",
+                    "output": "Reading netplan configuration...",
+                    "duration": 500,
+                    "conclusion": "succeed"
+                },
+                {
+                    "component": "text",
+                    "output": "network:\n  version: 2\n  renderer: networkd\n  ethernets:\n    eth0:\n      dhcp4: true\n      dhcp6: false"
+                }
+            ]
+        },
+        "set": {
+            "description": "Add new setting by specifying a dotted key=value pair",
+            "positional": {
+                "key_value": {
+                    "description": "Setting to add in key=value format",
+                    "type": "string"
+                }
+            },
+            "options": {
+                "help": {
+                    "alias": "h",
+                    "description": "Print basic help",
+                    "type": "boolean"
+                },
+                "debug": {
+                    "description": "Print debugging output during the process",
+                    "type": "boolean"
+                },
+                "origin-hint": {
+                    "description": "Filename hint for the configuration file",
+                    "type": "string",
+                    "requiresArg": true
+                }
+            },
+            "handler": [
+                {
+                    "component": "spinner",
+                    "output": "Writing configuration to /etc/netplan/...",
+                    "duration": 800,
+                    "conclusion": "succeed"
+                },
+                {
+                    "component": "text",
+                    "output": "Configuration updated successfully.\nRun 'netplan apply' to apply the changes."
+                }
+            ]
+        },
+        "info": {
+            "description": "Show available netplan features",
+            "options": {
+                "help": {
+                    "alias": "h",
+                    "description": "Print basic help",
+                    "type": "boolean"
+                },
+                "debug": {
+                    "description": "Print debugging output during the process",
+                    "type": "boolean"
+                },
+                "json": {
+                    "description": "Output version and features in JSON format",
+                    "type": "boolean"
+                },
+                "yaml": {
+                    "description": "Output version and features in YAML format (default)",
+                    "type": "boolean"
+                }
+            },
+            "handler": {
+                "component": "text",
+                "output": "netplan.io:\n  version: 1.1\n  features:\n    - dhcp-use-domains\n    - ipv6-mtu\n    - ipv6-privacy\n    - optional-addresses\n    - vxlan"
+            }
+        },
+        "ip": {
+            "description": "Retrieve IP information from the system",
+            "options": {
+                "help": {
+                    "alias": "h",
+                    "description": "Print basic help",
+                    "type": "boolean"
+                },
+                "debug": {
+                    "description": "Print debugging output during the process",
+                    "type": "boolean"
+                }
+            },
+            "commands": {
+                "help": {
+                    "description": "Show help for ip subcommands",
+                    "handler": {
+                        "component": "text",
+                        "output": "netplan ip - Retrieve IP information from the system\n\nAvailable subcommands:\n  help      Show this help message\n  leases    Display DHCP leases for an interface\n\nUsage:\n  netplan ip leases INTERFACE"
+                    }
+                },
+                "leases": {
+                    "description": "Display DHCP leases for an interface",
+                    "positional": {
+                        "interface": {
+                            "description": "Network interface name",
+                            "type": "string",
+                            "demandOption": true
+                        }
+                    },
+                    "options": {
+                        "help": {
+                            "alias": "h",
+                            "description": "Print basic help",
+                            "type": "boolean"
+                        },
+                        "debug": {
+                            "description": "Print debugging output during the process",
+                            "type": "boolean"
+                        },
+                        "root-dir": {
+                            "description": "Read configuration from this root directory instead of /",
+                            "type": "string",
+                            "requiresArg": true
+                        }
+                    },
+                    "handler": [
+                        {
+                            "component": "spinner",
+                            "output": "Retrieving DHCP lease information...",
+                            "duration": 800
+                        },
+                        {
+                            "component": "table",
+                            "output": [
+                                ["Property", "Value"],
+                                ["Address", "192.168.1.100"],
+                                ["Subnet Mask", "255.255.255.0"],
+                                ["Gateway", "192.168.1.1"],
+                                ["DNS", "192.168.1.1, 8.8.8.8"],
+                                ["Lease Time", "86400 seconds"],
+                                ["Renewal Time", "43200 seconds"]
+                            ]
+                        }
+                    ]
+                }
+            }
+        },
+        "status": {
+            "description": "Query networking state of the running system",
+            "positional": {
+                "interface": {
+                    "description": "Network interface to query (optional)",
+                    "type": "string"
+                }
+            },
+            "options": {
+                "help": {
+                    "alias": "h",
+                    "description": "Print basic help",
+                    "type": "boolean"
+                },
+                "debug": {
+                    "description": "Print debugging output during the process",
+                    "type": "boolean"
+                },
+                "all": {
+                    "alias": "a",
+                    "description": "Show all interface data including inactive",
+                    "type": "boolean"
+                },
+                "diff": {
+                    "description": "Show differences between system and YAML config",
+                    "type": "boolean"
+                },
+                "diff-only": {
+                    "description": "Show only the differences (implies --diff)",
+                    "type": "boolean"
+                },
+                "root-dir": {
+                    "description": "Read configuration from this root directory instead of /",
+                    "type": "string",
+                    "requiresArg": true
+                },
+                "verbose": {
+                    "description": "Show extra information",
+                    "type": "boolean"
+                },
+                "format": {
+                    "alias": "f",
+                    "description": "Output format (json or yaml)",
+                    "type": "string",
+                    "choices": ["json", "yaml"]
+                }
+            },
+            "handler": [
+                {
+                    "component": "spinner",
+                    "output": "Querying network state...",
+                    "duration": 1000
+                },
+                {
+                    "component": "text",
+                    "output": "●  1: lo ethernet UNKNOWN/UP (unmanaged)\n      MAC Address: 00:00:00:00:00:00\n      Addresses: 127.0.0.1/8\n                 ::1/128\n\n●  2: eth0 ethernet UP/UP (networkd: eth0)\n      MAC Address: 52:54:00:12:34:56\n      Addresses: 192.168.1.100/24 (dhcp)\n      DNS Addresses: 192.168.1.1\n                     8.8.8.8\n      Routes: default via 192.168.1.1 (dhcp)\n              192.168.1.0/24 from 192.168.1.100\n\n2 inactive interfaces hidden. Use '--all' to show all."
+                }
+            ]
+        },
+        "try": {
+            "description": "Try to apply a new netplan config with automatic rollback",
+            "options": {
+                "help": {
+                    "alias": "h",
+                    "description": "Print basic help",
+                    "type": "boolean"
+                },
+                "debug": {
+                    "description": "Print debugging output during the process",
+                    "type": "boolean"
+                },
+                "config-file": {
+                    "description": "Apply this additional config file",
+                    "type": "string",
+                    "requiresArg": true
+                },
+                "timeout": {
+                    "description": "Timeout in seconds before reverting (default: 120)",
+                    "type": "number",
+                    "default": 120
+                },
+                "state": {
+                    "description": "Directory containing previous YAML state for diff",
+                    "type": "string"
+                }
+            },
+            "handler": [
+                {
+                    "component": "text",
+                    "output": "Do you want to keep these settings?\n\nPress ENTER before the timeout to accept the new configuration\n\nChanges will revert in 120 seconds"
                 },
                 {
                     "component": "spinner",
                     "output": [
-                        "Logging in",
-                        "Please wait",
-                        "Verifying credentials"
+                        "Applying new configuration",
+                        "Waiting for confirmation",
+                        "Testing network connectivity"
                     ],
-                    "duration": 2000
+                    "duration": 3000
                 },
                 {
-                    "component": "variable",
-                    "output": {
-                        "isLoggedIn": "true"
-                    }
+                    "component": "confirm",
+                    "name": "keepSettings",
+                    "message": "Keep the new configuration?",
+                    "initial": true
                 },
                 {
                     "component": "text",
-                    "output": "Welcome, {{username}}! You are now logged in."
+                    "output": "Configuration changes accepted."
                 }
             ]
         },
-        "logout": {
-            "description": "Log out from TaskTrack",
-            "handler": [
-                {
-                    "component": "conditional",
-                    "output": {
-                        "if": "isLoggedIn == 'true'",
-                        "then": [
-                            {
-                                "component": "spinner",
-                                "output": "Logging out...",
-                                "duration": 1000
-                            },
-                            {
-                                "component": "variable",
-                                "output": {
-                                    "username": "",
-                                    "isLoggedIn": "false"
-                                }
-                            },
-                            {
-                                "component": "text",
-                                "output": "You have been logged out successfully."
-                            }
-                        ],
-                        "else": {
-                            "component": "text",
-                            "output": "You are not currently logged in."
-                        }
-                    }
+        "rebind": {
+            "description": "Rebind SR-IOV virtual functions to their driver",
+            "positional": {
+                "interfaces": {
+                    "description": "Space-separated list of physical function interface names",
+                    "type": "string"
                 }
-            ]
-        },
-        "add": {
-            "description": "Add a new task or subtask",
-            "commands": {
-                "task": {
-                    "description": "Add a new main task",
-                    "handler": [
-                        {
-                            "component": "conditional",
-                            "output": {
-                                "if": "isLoggedIn == 'true'",
-                                "then": [
-                                    {
-                                        "component": "input",
-                                        "name": "taskName",
-                                        "message": "Enter task name:"
-                                    },
-                                    {
-                                        "component": "select",
-                                        "name": "priority",
-                                        "message": "Select task priority:",
-                                        "choices": [
-                                            { "name": "Low", "value": "low" },
-                                            {
-                                                "name": "Medium",
-                                                "value": "medium"
-                                            },
-                                            { "name": "High", "value": "high" }
-                                        ]
-                                    },
-                                    {
-                                        "component": "progressBar",
-                                        "output": "Adding task...",
-                                        "duration": 1500
-                                    },
-                                    {
-                                        "component": "text",
-                                        "output": "Task '{{taskName}}' added with {{priority}} priority."
-                                    }
-                                ],
-                                "else": {
-                                    "component": "text",
-                                    "output": "Please log in to add tasks."
-                                }
-                            }
-                        }
-                    ]
+            },
+            "options": {
+                "help": {
+                    "alias": "h",
+                    "description": "Print basic help",
+                    "type": "boolean"
                 },
-                "subtask": {
-                    "description": "Add a new subtask to an existing task",
-                    "handler": [
-                        {
-                            "component": "conditional",
-                            "output": {
-                                "if": "isLoggedIn == 'true'",
-                                "then": [
-                                    {
-                                        "component": "input",
-                                        "name": "parentTaskId",
-                                        "message": "Enter the ID of the parent task:"
-                                    },
-                                    {
-                                        "component": "input",
-                                        "name": "subtaskName",
-                                        "message": "Enter subtask name:"
-                                    },
-                                    {
-                                        "component": "progressBar",
-                                        "output": "Adding subtask...",
-                                        "duration": 1500
-                                    },
-                                    {
-                                        "component": "text",
-                                        "output": "Subtask '{{subtaskName}}' added to task {{parentTaskId}}."
-                                    }
-                                ],
-                                "else": {
-                                    "component": "text",
-                                    "output": "Please log in to add subtasks."
-                                }
-                            }
-                        }
-                    ]
+                "debug": {
+                    "description": "Print debugging output during the process",
+                    "type": "boolean"
                 }
-            }
-        },
-        "list": {
-            "description": "List all tasks",
+            },
             "handler": [
                 {
-                    "component": "conditional",
-                    "output": {
-                        "if": "isLoggedIn == 'true'",
-                        "then": [
-                            {
-                                "component": "spinner",
-                                "output": "Fetching tasks...",
-                                "duration": 1000
-                            },
-                            {
-                                "component": "table",
-                                "output": [
-                                    ["ID", "Task", "Priority", "Status"],
-                                    [
-                                        "1",
-                                        "Implement login",
-                                        "High",
-                                        "In Progress"
-                                    ],
-                                    ["2", "Create task list", "Medium", "Todo"],
-                                    [
-                                        "3",
-                                        "Add task prioritization",
-                                        "Low",
-                                        "Completed"
-                                    ]
-                                ]
-                            }
-                        ],
-                        "else": {
-                            "component": "text",
-                            "output": "Please log in to view tasks."
-                        }
-                    }
-                }
-            ]
-        },
-        "complete": {
-            "description": "Mark a task as complete",
-            "handler": [
-                {
-                    "component": "conditional",
-                    "output": {
-                        "if": "isLoggedIn == 'true'",
-                        "then": [
-                            {
-                                "component": "number",
-                                "name": "taskId",
-                                "message": "Enter the ID of the task to mark as complete:"
-                            },
-                            {
-                                "component": "spinner",
-                                "output": "Updating task status...",
-                                "duration": 1500
-                            },
-                            {
-                                "component": "text",
-                                "output": "Task {{taskId}} has been marked as complete."
-                            }
-                        ],
-                        "else": {
-                            "component": "text",
-                            "output": "Please log in to update tasks."
-                        }
-                    }
-                }
-            ]
-        },
-        "report": {
-            "description": "Generate reports",
-            "commands": {
-                "summary": {
-                    "description": "Generate a summary report of all tasks",
-                    "handler": [
-                        {
-                            "component": "conditional",
-                            "output": {
-                                "if": "isLoggedIn == 'true'",
-                                "then": [
-                                    {
-                                        "component": "spinner",
-                                        "output": "Generating summary report...",
-                                        "duration": 2000
-                                    },
-                                    {
-                                        "component": "text",
-                                        "output": "Summary Report:\n- Total tasks: 10\n- Completed: 3\n- In Progress: 5\n- Todo: 2"
-                                    }
-                                ],
-                                "else": {
-                                    "component": "text",
-                                    "output": "Please log in to generate reports."
-                                }
-                            }
-                        }
-                    ]
+                    "component": "spinner",
+                    "output": "Rebinding SR-IOV virtual functions...",
+                    "duration": 1500,
+                    "conclusion": "succeed"
                 },
-                "priority": {
-                    "description": "Generate a report of tasks by priority",
-                    "handler": [
-                        {
-                            "component": "conditional",
-                            "output": {
-                                "if": "isLoggedIn == 'true'",
-                                "then": [
-                                    {
-                                        "component": "spinner",
-                                        "output": "Generating priority report...",
-                                        "duration": 2000
-                                    },
-                                    {
-                                        "component": "table",
-                                        "output": [
-                                            [
-                                                "Priority",
-                                                "Total Tasks",
-                                                "Completed"
-                                            ],
-                                            ["High", "4", "1"],
-                                            ["Medium", "3", "1"],
-                                            ["Low", "3", "1"]
-                                        ]
-                                    }
-                                ],
-                                "else": {
-                                    "component": "text",
-                                    "output": "Please log in to generate reports."
-                                }
-                            }
-                        }
-                    ]
+                {
+                    "component": "text",
+                    "output": "SR-IOV virtual functions rebound successfully."
                 }
-            }
+            ]
         }
     }
 }
