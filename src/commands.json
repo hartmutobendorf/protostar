@@ -411,8 +411,18 @@
                                         "message": "Enter tag name:"
                                     },
                                     {
-                                        "component": "text",
-                                        "output": "Tag '{{tag}}' has been actioned for machine {{systemId}}"
+                                        "component": "conditional",
+                                        "output": {
+                                            "if": "action == 'add'",
+                                            "then": {
+                                                "component": "text",
+                                                "output": "Tag '{{tag}}' has been added to machine {{systemId}}"
+                                            },
+                                            "else": {
+                                                "component": "text",
+                                                "output": "Tag '{{tag}}' has been removed from machine {{systemId}}"
+                                            }
+                                        }
                                     }
                                 ],
                                 "else": {
