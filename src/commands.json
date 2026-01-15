@@ -1,12 +1,20 @@
 {
-    "welcome": "Welcome to TaskTrack CLI! Type 'help' to see available commands.",
+    "welcome": "Welcome to MAAS (Metal as a Service) CLI!\nManage your physical servers like virtual machines.\nType 'help' to see available commands.",
     "variables": {
-        "isLoggedIn": "false"
+        "isLoggedIn": "false",
+        "maasUrl": "",
+        "apiKey": ""
     },
     "commands": {
         "login": {
-            "description": "Log in to TaskTrack",
+            "description": "Log in to a MAAS server",
             "handler": [
+                {
+                    "component": "input",
+                    "name": "maasUrl",
+                    "message": "Enter MAAS server URL:",
+                    "initial": "http://localhost:5240/MAAS"
+                },
                 {
                     "component": "input",
                     "name": "username",
@@ -14,32 +22,35 @@
                 },
                 {
                     "component": "password",
-                    "name": "password",
-                    "message": "Enter your password:"
+                    "name": "apiKey",
+                    "message": "Enter your API key:"
                 },
                 {
                     "component": "spinner",
                     "output": [
-                        "Logging in",
-                        "Please wait",
+                        "Connecting to MAAS server",
+                        "Authenticating",
                         "Verifying credentials"
                     ],
-                    "duration": 2000
+                    "duration": 2000,
+                    "conclusion": "succeed"
                 },
                 {
                     "component": "variable",
                     "output": {
-                        "isLoggedIn": "true"
+                        "isLoggedIn": "true",
+                        "maasUrl": "{{maasUrl}}",
+                        "apiKey": "{{apiKey}}"
                     }
                 },
                 {
                     "component": "text",
-                    "output": "Welcome, {{username}}! You are now logged in."
+                    "output": "Successfully logged in to MAAS at {{maasUrl}}"
                 }
             ]
         },
         "logout": {
-            "description": "Log out from TaskTrack",
+            "description": "Log out from the MAAS server",
             "handler": [
                 {
                     "component": "conditional",
@@ -47,35 +58,31 @@
                         "if": "isLoggedIn == 'true'",
                         "then": [
                             {
-                                "component": "spinner",
-                                "output": "Logging out...",
-                                "duration": 1000
-                            },
-                            {
                                 "component": "variable",
                                 "output": {
-                                    "username": "",
-                                    "isLoggedIn": "false"
+                                    "isLoggedIn": "false",
+                                    "maasUrl": "",
+                                    "apiKey": ""
                                 }
                             },
                             {
                                 "component": "text",
-                                "output": "You have been logged out successfully."
+                                "output": "Successfully logged out from MAAS"
                             }
                         ],
                         "else": {
                             "component": "text",
-                            "output": "You are not currently logged in."
+                            "output": "You are not currently logged in"
                         }
                     }
                 }
             ]
         },
-        "add": {
-            "description": "Add a new task or subtask",
+        "machines": {
+            "description": "Manage physical machines in MAAS",
             "commands": {
-                "task": {
-                    "description": "Add a new main task",
+                "list": {
+                    "description": "List all machines",
                     "handler": [
                         {
                             "component": "conditional",
@@ -83,43 +90,33 @@
                                 "if": "isLoggedIn == 'true'",
                                 "then": [
                                     {
-                                        "component": "input",
-                                        "name": "taskName",
-                                        "message": "Enter task name:"
+                                        "component": "spinner",
+                                        "output": "Fetching machines from MAAS...",
+                                        "duration": 1500,
+                                        "conclusion": "succeed"
                                     },
                                     {
-                                        "component": "select",
-                                        "name": "priority",
-                                        "message": "Select task priority:",
-                                        "choices": [
-                                            { "name": "Low", "value": "low" },
-                                            {
-                                                "name": "Medium",
-                                                "value": "medium"
-                                            },
-                                            { "name": "High", "value": "high" }
+                                        "component": "table",
+                                        "output": [
+                                            ["Hostname", "System ID", "Status", "Zone", "Power"],
+                                            ["node-001", "abc123", "Ready", "default", "on"],
+                                            ["node-002", "def456", "Deployed", "zone-1", "on"],
+                                            ["node-003", "ghi789", "Commissioning", "zone-2", "on"],
+                                            ["node-004", "jkl012", "Failed testing", "default", "off"],
+                                            ["node-005", "mno345", "Allocated", "zone-1", "on"]
                                         ]
-                                    },
-                                    {
-                                        "component": "progressBar",
-                                        "output": "Adding task...",
-                                        "duration": 1500
-                                    },
-                                    {
-                                        "component": "text",
-                                        "output": "Task '{{taskName}}' added with {{priority}} priority."
                                     }
                                 ],
                                 "else": {
                                     "component": "text",
-                                    "output": "Please log in to add tasks."
+                                    "output": "Please log in first using 'login' command"
                                 }
                             }
                         }
                     ]
                 },
-                "subtask": {
-                    "description": "Add a new subtask to an existing task",
+                "deploy": {
+                    "description": "Deploy an operating system to a machine",
                     "handler": [
                         {
                             "component": "conditional",
@@ -128,27 +125,309 @@
                                 "then": [
                                     {
                                         "component": "input",
-                                        "name": "parentTaskId",
-                                        "message": "Enter the ID of the parent task:"
+                                        "name": "systemId",
+                                        "message": "Enter machine system ID:"
                                     },
                                     {
-                                        "component": "input",
-                                        "name": "subtaskName",
-                                        "message": "Enter subtask name:"
+                                        "component": "select",
+                                        "name": "osystem",
+                                        "message": "Select operating system:",
+                                        "choices": [
+                                            { "name": "Ubuntu 22.04 LTS", "value": "ubuntu/jammy" },
+                                            { "name": "Ubuntu 20.04 LTS", "value": "ubuntu/focal" },
+                                            { "name": "Ubuntu 24.04 LTS", "value": "ubuntu/noble" },
+                                            { "name": "CentOS 8", "value": "centos/8" },
+                                            { "name": "Rocky Linux 9", "value": "rocky/9" }
+                                        ]
+                                    },
+                                    {
+                                        "component": "confirm",
+                                        "name": "confirm",
+                                        "message": "Deploy {{osystem}} to machine {{systemId}}?"
                                     },
                                     {
                                         "component": "progressBar",
-                                        "output": "Adding subtask...",
-                                        "duration": 1500
+                                        "output": "Deploying OS to machine {{systemId}}...",
+                                        "duration": 3000
                                     },
                                     {
                                         "component": "text",
-                                        "output": "Subtask '{{subtaskName}}' added to task {{parentTaskId}}."
+                                        "output": "Machine {{systemId}} is now deploying {{osystem}}"
                                     }
                                 ],
                                 "else": {
                                     "component": "text",
-                                    "output": "Please log in to add subtasks."
+                                    "output": "Please log in first using 'login' command"
+                                }
+                            }
+                        }
+                    ]
+                },
+                "release": {
+                    "description": "Release a deployed or allocated machine",
+                    "handler": [
+                        {
+                            "component": "conditional",
+                            "output": {
+                                "if": "isLoggedIn == 'true'",
+                                "then": [
+                                    {
+                                        "component": "input",
+                                        "name": "systemId",
+                                        "message": "Enter machine system ID to release:"
+                                    },
+                                    {
+                                        "component": "confirm",
+                                        "name": "confirm",
+                                        "message": "Release machine {{systemId}}? This will erase the disk.",
+                                        "initial": false
+                                    },
+                                    {
+                                        "component": "spinner",
+                                        "output": "Releasing machine {{systemId}}...",
+                                        "duration": 2000,
+                                        "conclusion": "succeed"
+                                    },
+                                    {
+                                        "component": "text",
+                                        "output": "Machine {{systemId}} has been released and is ready for reuse"
+                                    }
+                                ],
+                                "else": {
+                                    "component": "text",
+                                    "output": "Please log in first using 'login' command"
+                                }
+                            }
+                        }
+                    ]
+                },
+                "commission": {
+                    "description": "Commission a machine (discover hardware and run tests)",
+                    "handler": [
+                        {
+                            "component": "conditional",
+                            "output": {
+                                "if": "isLoggedIn == 'true'",
+                                "then": [
+                                    {
+                                        "component": "input",
+                                        "name": "systemId",
+                                        "message": "Enter machine system ID to commission:"
+                                    },
+                                    {
+                                        "component": "multiSelect",
+                                        "name": "tests",
+                                        "message": "Select tests to run:",
+                                        "choices": [
+                                            { "name": "CPU stress test", "value": "cpu" },
+                                            { "name": "Memory test", "value": "memory" },
+                                            { "name": "Storage test", "value": "storage" },
+                                            { "name": "Network connectivity", "value": "network" }
+                                        ],
+                                        "limit": 4
+                                    },
+                                    {
+                                        "component": "progressBar",
+                                        "output": "Commissioning machine {{systemId}}...",
+                                        "duration": 3000
+                                    },
+                                    {
+                                        "component": "text",
+                                        "output": "Machine {{systemId}} commissioning started. Selected tests will run."
+                                    }
+                                ],
+                                "else": {
+                                    "component": "text",
+                                    "output": "Please log in first using 'login' command"
+                                }
+                            }
+                        }
+                    ]
+                },
+                "details": {
+                    "description": "Show detailed information about a machine",
+                    "handler": [
+                        {
+                            "component": "conditional",
+                            "output": {
+                                "if": "isLoggedIn == 'true'",
+                                "then": [
+                                    {
+                                        "component": "input",
+                                        "name": "systemId",
+                                        "message": "Enter machine system ID:"
+                                    },
+                                    {
+                                        "component": "spinner",
+                                        "output": "Fetching machine details...",
+                                        "duration": 1000,
+                                        "conclusion": "succeed"
+                                    },
+                                    {
+                                        "component": "text",
+                                        "output": "Machine Details for {{systemId}}:\n\nHostname: node-001.maas\nStatus: Ready\nPower: On\nZone: default\n\nHardware:\n- CPU: 8 cores @ 2.4GHz\n- Memory: 32 GB\n- Storage: 500 GB SSD\n\nNetwork:\n- eth0: 192.168.1.100/24\n- eth1: 10.0.0.100/24\n\nTags: physical, production, zone-1"
+                                    }
+                                ],
+                                "else": {
+                                    "component": "text",
+                                    "output": "Please log in first using 'login' command"
+                                }
+                            }
+                        }
+                    ]
+                },
+                "power": {
+                    "description": "Manage machine power state",
+                    "commands": {
+                        "on": {
+                            "description": "Power on a machine",
+                            "handler": [
+                                {
+                                    "component": "conditional",
+                                    "output": {
+                                        "if": "isLoggedIn == 'true'",
+                                        "then": [
+                                            {
+                                                "component": "input",
+                                                "name": "systemId",
+                                                "message": "Enter machine system ID:"
+                                            },
+                                            {
+                                                "component": "spinner",
+                                                "output": "Powering on machine {{systemId}}...",
+                                                "duration": 2000,
+                                                "conclusion": "succeed"
+                                            },
+                                            {
+                                                "component": "text",
+                                                "output": "Machine {{systemId}} is now powered on"
+                                            }
+                                        ],
+                                        "else": {
+                                            "component": "text",
+                                            "output": "Please log in first using 'login' command"
+                                        }
+                                    }
+                                }
+                            ]
+                        },
+                        "off": {
+                            "description": "Power off a machine",
+                            "handler": [
+                                {
+                                    "component": "conditional",
+                                    "output": {
+                                        "if": "isLoggedIn == 'true'",
+                                        "then": [
+                                            {
+                                                "component": "input",
+                                                "name": "systemId",
+                                                "message": "Enter machine system ID:"
+                                            },
+                                            {
+                                                "component": "confirm",
+                                                "name": "confirm",
+                                                "message": "Power off machine {{systemId}}?",
+                                                "initial": false
+                                            },
+                                            {
+                                                "component": "spinner",
+                                                "output": "Powering off machine {{systemId}}...",
+                                                "duration": 2000,
+                                                "conclusion": "succeed"
+                                            },
+                                            {
+                                                "component": "text",
+                                                "output": "Machine {{systemId}} is now powered off"
+                                            }
+                                        ],
+                                        "else": {
+                                            "component": "text",
+                                            "output": "Please log in first using 'login' command"
+                                        }
+                                    }
+                                }
+                            ]
+                        },
+                        "status": {
+                            "description": "Check power status of a machine",
+                            "handler": [
+                                {
+                                    "component": "conditional",
+                                    "output": {
+                                        "if": "isLoggedIn == 'true'",
+                                        "then": [
+                                            {
+                                                "component": "input",
+                                                "name": "systemId",
+                                                "message": "Enter machine system ID:"
+                                            },
+                                            {
+                                                "component": "spinner",
+                                                "output": "Checking power status...",
+                                                "duration": 1000,
+                                                "conclusion": "succeed"
+                                            },
+                                            {
+                                                "component": "text",
+                                                "output": "Power status for machine {{systemId}}: ON"
+                                            }
+                                        ],
+                                        "else": {
+                                            "component": "text",
+                                            "output": "Please log in first using 'login' command"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                },
+                "tag": {
+                    "description": "Add or remove tags from a machine",
+                    "handler": [
+                        {
+                            "component": "conditional",
+                            "output": {
+                                "if": "isLoggedIn == 'true'",
+                                "then": [
+                                    {
+                                        "component": "input",
+                                        "name": "systemId",
+                                        "message": "Enter machine system ID:"
+                                    },
+                                    {
+                                        "component": "select",
+                                        "name": "action",
+                                        "message": "Select action:",
+                                        "choices": [
+                                            { "name": "Add tag", "value": "add" },
+                                            { "name": "Remove tag", "value": "remove" }
+                                        ]
+                                    },
+                                    {
+                                        "component": "input",
+                                        "name": "tag",
+                                        "message": "Enter tag name:"
+                                    },
+                                    {
+                                        "component": "conditional",
+                                        "output": {
+                                            "if": "action == 'add'",
+                                            "then": {
+                                                "component": "text",
+                                                "output": "Tag '{{tag}}' has been added to machine {{systemId}}"
+                                            },
+                                            "else": {
+                                                "component": "text",
+                                                "output": "Tag '{{tag}}' has been removed from machine {{systemId}}"
+                                            }
+                                        }
+                                    }
+                                ],
+                                "else": {
+                                    "component": "text",
+                                    "output": "Please log in first using 'login' command"
                                 }
                             }
                         }
@@ -156,83 +435,11 @@
                 }
             }
         },
-        "list": {
-            "description": "List all tasks",
-            "handler": [
-                {
-                    "component": "conditional",
-                    "output": {
-                        "if": "isLoggedIn == 'true'",
-                        "then": [
-                            {
-                                "component": "spinner",
-                                "output": "Fetching tasks...",
-                                "duration": 1000
-                            },
-                            {
-                                "component": "table",
-                                "output": [
-                                    ["ID", "Task", "Priority", "Status"],
-                                    [
-                                        "1",
-                                        "Implement login",
-                                        "High",
-                                        "In Progress"
-                                    ],
-                                    ["2", "Create task list", "Medium", "Todo"],
-                                    [
-                                        "3",
-                                        "Add task prioritization",
-                                        "Low",
-                                        "Completed"
-                                    ]
-                                ]
-                            }
-                        ],
-                        "else": {
-                            "component": "text",
-                            "output": "Please log in to view tasks."
-                        }
-                    }
-                }
-            ]
-        },
-        "complete": {
-            "description": "Mark a task as complete",
-            "handler": [
-                {
-                    "component": "conditional",
-                    "output": {
-                        "if": "isLoggedIn == 'true'",
-                        "then": [
-                            {
-                                "component": "number",
-                                "name": "taskId",
-                                "message": "Enter the ID of the task to mark as complete:"
-                            },
-                            {
-                                "component": "spinner",
-                                "output": "Updating task status...",
-                                "duration": 1500
-                            },
-                            {
-                                "component": "text",
-                                "output": "Task {{taskId}} has been marked as complete."
-                            }
-                        ],
-                        "else": {
-                            "component": "text",
-                            "output": "Please log in to update tasks."
-                        }
-                    }
-                }
-            ]
-        },
-        "report": {
-            "description": "Generate reports",
+        "devices": {
+            "description": "Manage network devices",
             "commands": {
-                "summary": {
-                    "description": "Generate a summary report of all tasks",
+                "list": {
+                    "description": "List all devices",
                     "handler": [
                         {
                             "component": "conditional",
@@ -241,52 +448,654 @@
                                 "then": [
                                     {
                                         "component": "spinner",
-                                        "output": "Generating summary report...",
-                                        "duration": 2000
-                                    },
-                                    {
-                                        "component": "text",
-                                        "output": "Summary Report:\n- Total tasks: 10\n- Completed: 3\n- In Progress: 5\n- Todo: 2"
-                                    }
-                                ],
-                                "else": {
-                                    "component": "text",
-                                    "output": "Please log in to generate reports."
-                                }
-                            }
-                        }
-                    ]
-                },
-                "priority": {
-                    "description": "Generate a report of tasks by priority",
-                    "handler": [
-                        {
-                            "component": "conditional",
-                            "output": {
-                                "if": "isLoggedIn == 'true'",
-                                "then": [
-                                    {
-                                        "component": "spinner",
-                                        "output": "Generating priority report...",
-                                        "duration": 2000
+                                        "output": "Fetching devices...",
+                                        "duration": 1000,
+                                        "conclusion": "succeed"
                                     },
                                     {
                                         "component": "table",
                                         "output": [
-                                            [
-                                                "Priority",
-                                                "Total Tasks",
-                                                "Completed"
-                                            ],
-                                            ["High", "4", "1"],
-                                            ["Medium", "3", "1"],
-                                            ["Low", "3", "1"]
+                                            ["Hostname", "System ID", "Type", "IP Address", "Zone"],
+                                            ["switch-01", "sw1234", "Switch", "192.168.1.10", "network"],
+                                            ["router-01", "rt5678", "Router", "192.168.1.1", "network"],
+                                            ["firewall-01", "fw9012", "Firewall", "192.168.1.254", "security"]
                                         ]
                                     }
                                 ],
                                 "else": {
                                     "component": "text",
-                                    "output": "Please log in to generate reports."
+                                    "output": "Please log in first using 'login' command"
+                                }
+                            }
+                        }
+                    ]
+                },
+                "create": {
+                    "description": "Create a new device",
+                    "handler": [
+                        {
+                            "component": "conditional",
+                            "output": {
+                                "if": "isLoggedIn == 'true'",
+                                "then": [
+                                    {
+                                        "component": "form",
+                                        "name": "deviceInfo",
+                                        "message": "Enter device information:",
+                                        "choices": [
+                                            {
+                                                "name": "hostname",
+                                                "message": "Hostname:",
+                                                "initial": "device-01"
+                                            },
+                                            {
+                                                "name": "mac",
+                                                "message": "MAC Address:",
+                                                "initial": "00:11:22:33:44:55"
+                                            },
+                                            {
+                                                "name": "ip",
+                                                "message": "IP Address:"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "component": "spinner",
+                                        "output": "Creating device...",
+                                        "duration": 1500,
+                                        "conclusion": "succeed"
+                                    },
+                                    {
+                                        "component": "text",
+                                        "output": "Device created successfully with hostname: {{hostname}}"
+                                    }
+                                ],
+                                "else": {
+                                    "component": "text",
+                                    "output": "Please log in first using 'login' command"
+                                }
+                            }
+                        }
+                    ]
+                },
+                "delete": {
+                    "description": "Delete a device",
+                    "handler": [
+                        {
+                            "component": "conditional",
+                            "output": {
+                                "if": "isLoggedIn == 'true'",
+                                "then": [
+                                    {
+                                        "component": "input",
+                                        "name": "systemId",
+                                        "message": "Enter device system ID:"
+                                    },
+                                    {
+                                        "component": "confirm",
+                                        "name": "confirm",
+                                        "message": "Delete device {{systemId}}?",
+                                        "initial": false
+                                    },
+                                    {
+                                        "component": "text",
+                                        "output": "Device {{systemId}} has been deleted"
+                                    }
+                                ],
+                                "else": {
+                                    "component": "text",
+                                    "output": "Please log in first using 'login' command"
+                                }
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        "zones": {
+            "description": "Manage availability zones",
+            "commands": {
+                "list": {
+                    "description": "List all availability zones",
+                    "handler": [
+                        {
+                            "component": "conditional",
+                            "output": {
+                                "if": "isLoggedIn == 'true'",
+                                "then": [
+                                    {
+                                        "component": "spinner",
+                                        "output": "Fetching zones...",
+                                        "duration": 1000,
+                                        "conclusion": "succeed"
+                                    },
+                                    {
+                                        "component": "table",
+                                        "output": [
+                                            ["Zone", "Description", "Machines"],
+                                            ["default", "Default zone", "15"],
+                                            ["zone-1", "Data center 1", "8"],
+                                            ["zone-2", "Data center 2", "12"],
+                                            ["network", "Network equipment zone", "5"]
+                                        ]
+                                    }
+                                ],
+                                "else": {
+                                    "component": "text",
+                                    "output": "Please log in first using 'login' command"
+                                }
+                            }
+                        }
+                    ]
+                },
+                "create": {
+                    "description": "Create a new availability zone",
+                    "handler": [
+                        {
+                            "component": "conditional",
+                            "output": {
+                                "if": "isLoggedIn == 'true'",
+                                "then": [
+                                    {
+                                        "component": "input",
+                                        "name": "zoneName",
+                                        "message": "Enter zone name:"
+                                    },
+                                    {
+                                        "component": "input",
+                                        "name": "description",
+                                        "message": "Enter zone description:"
+                                    },
+                                    {
+                                        "component": "text",
+                                        "output": "Zone '{{zoneName}}' created successfully"
+                                    }
+                                ],
+                                "else": {
+                                    "component": "text",
+                                    "output": "Please log in first using 'login' command"
+                                }
+                            }
+                        }
+                    ]
+                },
+                "delete": {
+                    "description": "Delete an availability zone",
+                    "handler": [
+                        {
+                            "component": "conditional",
+                            "output": {
+                                "if": "isLoggedIn == 'true'",
+                                "then": [
+                                    {
+                                        "component": "input",
+                                        "name": "zoneName",
+                                        "message": "Enter zone name to delete:"
+                                    },
+                                    {
+                                        "component": "confirm",
+                                        "name": "confirm",
+                                        "message": "Delete zone '{{zoneName}}'? Machines will be moved to default zone.",
+                                        "initial": false
+                                    },
+                                    {
+                                        "component": "text",
+                                        "output": "Zone '{{zoneName}}' has been deleted"
+                                    }
+                                ],
+                                "else": {
+                                    "component": "text",
+                                    "output": "Please log in first using 'login' command"
+                                }
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        "tags": {
+            "description": "Manage tags for organizing resources",
+            "commands": {
+                "list": {
+                    "description": "List all tags",
+                    "handler": [
+                        {
+                            "component": "conditional",
+                            "output": {
+                                "if": "isLoggedIn == 'true'",
+                                "then": [
+                                    {
+                                        "component": "spinner",
+                                        "output": "Fetching tags...",
+                                        "duration": 1000,
+                                        "conclusion": "succeed"
+                                    },
+                                    {
+                                        "component": "table",
+                                        "output": [
+                                            ["Tag", "Description", "Resources"],
+                                            ["production", "Production servers", "20"],
+                                            ["staging", "Staging environment", "8"],
+                                            ["development", "Development machines", "15"],
+                                            ["gpu", "GPU-enabled machines", "4"],
+                                            ["high-memory", "High memory machines", "6"]
+                                        ]
+                                    }
+                                ],
+                                "else": {
+                                    "component": "text",
+                                    "output": "Please log in first using 'login' command"
+                                }
+                            }
+                        }
+                    ]
+                },
+                "create": {
+                    "description": "Create a new tag",
+                    "handler": [
+                        {
+                            "component": "conditional",
+                            "output": {
+                                "if": "isLoggedIn == 'true'",
+                                "then": [
+                                    {
+                                        "component": "input",
+                                        "name": "tagName",
+                                        "message": "Enter tag name:"
+                                    },
+                                    {
+                                        "component": "input",
+                                        "name": "description",
+                                        "message": "Enter tag description:"
+                                    },
+                                    {
+                                        "component": "text",
+                                        "output": "Tag '{{tagName}}' created successfully"
+                                    }
+                                ],
+                                "else": {
+                                    "component": "text",
+                                    "output": "Please log in first using 'login' command"
+                                }
+                            }
+                        }
+                    ]
+                },
+                "delete": {
+                    "description": "Delete a tag",
+                    "handler": [
+                        {
+                            "component": "conditional",
+                            "output": {
+                                "if": "isLoggedIn == 'true'",
+                                "then": [
+                                    {
+                                        "component": "input",
+                                        "name": "tagName",
+                                        "message": "Enter tag name to delete:"
+                                    },
+                                    {
+                                        "component": "confirm",
+                                        "name": "confirm",
+                                        "message": "Delete tag '{{tagName}}'?",
+                                        "initial": false
+                                    },
+                                    {
+                                        "component": "text",
+                                        "output": "Tag '{{tagName}}' has been deleted"
+                                    }
+                                ],
+                                "else": {
+                                    "component": "text",
+                                    "output": "Please log in first using 'login' command"
+                                }
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        "images": {
+            "description": "Manage boot images and operating systems",
+            "commands": {
+                "list": {
+                    "description": "List available boot images",
+                    "handler": [
+                        {
+                            "component": "conditional",
+                            "output": {
+                                "if": "isLoggedIn == 'true'",
+                                "then": [
+                                    {
+                                        "component": "spinner",
+                                        "output": "Fetching available images...",
+                                        "duration": 1500,
+                                        "conclusion": "succeed"
+                                    },
+                                    {
+                                        "component": "table",
+                                        "output": [
+                                            ["OS", "Release", "Architecture", "Status"],
+                                            ["Ubuntu", "22.04 LTS (Jammy)", "amd64", "Synced"],
+                                            ["Ubuntu", "20.04 LTS (Focal)", "amd64", "Synced"],
+                                            ["Ubuntu", "24.04 LTS (Noble)", "amd64", "Synced"],
+                                            ["CentOS", "8", "amd64", "Synced"],
+                                            ["Rocky Linux", "9", "amd64", "Syncing"]
+                                        ]
+                                    }
+                                ],
+                                "else": {
+                                    "component": "text",
+                                    "output": "Please log in first using 'login' command"
+                                }
+                            }
+                        }
+                    ]
+                },
+                "sync": {
+                    "description": "Sync boot images from the image repository",
+                    "handler": [
+                        {
+                            "component": "conditional",
+                            "output": {
+                                "if": "isLoggedIn == 'true'",
+                                "then": [
+                                    {
+                                        "component": "confirm",
+                                        "name": "confirm",
+                                        "message": "Start syncing boot images? This may take some time.",
+                                        "initial": true
+                                    },
+                                    {
+                                        "component": "progressBar",
+                                        "output": "Syncing boot images from repository...",
+                                        "duration": 4000
+                                    },
+                                    {
+                                        "component": "text",
+                                        "output": "Boot images sync completed successfully"
+                                    }
+                                ],
+                                "else": {
+                                    "component": "text",
+                                    "output": "Please log in first using 'login' command"
+                                }
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        "subnets": {
+            "description": "Manage network subnets",
+            "commands": {
+                "list": {
+                    "description": "List all subnets",
+                    "handler": [
+                        {
+                            "component": "conditional",
+                            "output": {
+                                "if": "isLoggedIn == 'true'",
+                                "then": [
+                                    {
+                                        "component": "spinner",
+                                        "output": "Fetching subnets...",
+                                        "duration": 1000,
+                                        "conclusion": "succeed"
+                                    },
+                                    {
+                                        "component": "table",
+                                        "output": [
+                                            ["CIDR", "VLAN", "Fabric", "Gateway", "DNS"],
+                                            ["192.168.1.0/24", "untagged", "fabric-0", "192.168.1.1", "8.8.8.8"],
+                                            ["10.0.0.0/24", "100", "fabric-1", "10.0.0.1", "8.8.8.8"],
+                                            ["172.16.0.0/24", "200", "fabric-2", "172.16.0.1", "1.1.1.1"]
+                                        ]
+                                    }
+                                ],
+                                "else": {
+                                    "component": "text",
+                                    "output": "Please log in first using 'login' command"
+                                }
+                            }
+                        }
+                    ]
+                },
+                "create": {
+                    "description": "Create a new subnet",
+                    "handler": [
+                        {
+                            "component": "conditional",
+                            "output": {
+                                "if": "isLoggedIn == 'true'",
+                                "then": [
+                                    {
+                                        "component": "form",
+                                        "name": "subnetInfo",
+                                        "message": "Enter subnet information:",
+                                        "choices": [
+                                            {
+                                                "name": "cidr",
+                                                "message": "CIDR:",
+                                                "initial": "192.168.2.0/24"
+                                            },
+                                            {
+                                                "name": "gateway",
+                                                "message": "Gateway IP:",
+                                                "initial": "192.168.2.1"
+                                            },
+                                            {
+                                                "name": "dns",
+                                                "message": "DNS Server:",
+                                                "initial": "8.8.8.8"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "component": "spinner",
+                                        "output": "Creating subnet...",
+                                        "duration": 1500,
+                                        "conclusion": "succeed"
+                                    },
+                                    {
+                                        "component": "text",
+                                        "output": "Subnet {{cidr}} created successfully"
+                                    }
+                                ],
+                                "else": {
+                                    "component": "text",
+                                    "output": "Please log in first using 'login' command"
+                                }
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        "fabrics": {
+            "description": "Manage network fabrics",
+            "commands": {
+                "list": {
+                    "description": "List all network fabrics",
+                    "handler": [
+                        {
+                            "component": "conditional",
+                            "output": {
+                                "if": "isLoggedIn == 'true'",
+                                "then": [
+                                    {
+                                        "component": "spinner",
+                                        "output": "Fetching fabrics...",
+                                        "duration": 1000,
+                                        "conclusion": "succeed"
+                                    },
+                                    {
+                                        "component": "table",
+                                        "output": [
+                                            ["Fabric", "VLANs", "Subnets"],
+                                            ["fabric-0", "2", "4"],
+                                            ["fabric-1", "5", "8"],
+                                            ["fabric-2", "3", "6"]
+                                        ]
+                                    }
+                                ],
+                                "else": {
+                                    "component": "text",
+                                    "output": "Please log in first using 'login' command"
+                                }
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        "events": {
+            "description": "View system events and logs",
+            "handler": [
+                {
+                    "component": "conditional",
+                    "output": {
+                        "if": "isLoggedIn == 'true'",
+                        "then": [
+                            {
+                                "component": "spinner",
+                                "output": "Fetching recent events...",
+                                "duration": 1500,
+                                "conclusion": "succeed"
+                            },
+                            {
+                                "component": "table",
+                                "output": [
+                                    ["Time", "Level", "Type", "Description"],
+                                    ["12:30:45", "INFO", "Machine", "node-001 deployed successfully"],
+                                    ["12:28:12", "WARNING", "Power", "node-004 failed to power on"],
+                                    ["12:25:33", "INFO", "Commissioning", "node-003 commissioning complete"],
+                                    ["12:20:01", "INFO", "Network", "Subnet 192.168.1.0/24 created"],
+                                    ["12:15:22", "ERROR", "Machine", "node-002 deployment failed"]
+                                ]
+                            }
+                        ],
+                        "else": {
+                            "component": "text",
+                            "output": "Please log in first using 'login' command"
+                        }
+                    }
+                }
+            ]
+        },
+        "status": {
+            "description": "Show MAAS system status",
+            "handler": [
+                {
+                    "component": "conditional",
+                    "output": {
+                        "if": "isLoggedIn == 'true'",
+                        "then": [
+                            {
+                                "component": "spinner",
+                                "output": "Fetching system status...",
+                                "duration": 1500,
+                                "conclusion": "succeed"
+                            },
+                            {
+                                "component": "text",
+                                "output": "MAAS System Status:\n\nVersion: 3.4.0\nRegion: maas.local (connected)\nRack: rack-controller-1 (connected)\n\nMachines:\n- Ready: 12\n- Allocated: 5\n- Deployed: 8\n- Commissioning: 2\n- Failed: 1\n\nNetworks:\n- Fabrics: 3\n- VLANs: 10\n- Subnets: 18\n\nImages: 15 synced\nZones: 4"
+                            }
+                        ],
+                        "else": {
+                            "component": "text",
+                            "output": "Please log in first using 'login' command"
+                        }
+                    }
+                }
+            ]
+        },
+        "users": {
+            "description": "Manage MAAS users",
+            "commands": {
+                "list": {
+                    "description": "List all users",
+                    "handler": [
+                        {
+                            "component": "conditional",
+                            "output": {
+                                "if": "isLoggedIn == 'true'",
+                                "then": [
+                                    {
+                                        "component": "spinner",
+                                        "output": "Fetching users...",
+                                        "duration": 1000,
+                                        "conclusion": "succeed"
+                                    },
+                                    {
+                                        "component": "table",
+                                        "output": [
+                                            ["Username", "Email", "Role", "Last Login"],
+                                            ["admin", "admin@example.com", "Administrator", "2024-01-15 10:30"],
+                                            ["operator1", "op1@example.com", "Operator", "2024-01-15 09:15"],
+                                            ["user1", "user1@example.com", "User", "2024-01-14 16:45"]
+                                        ]
+                                    }
+                                ],
+                                "else": {
+                                    "component": "text",
+                                    "output": "Please log in first using 'login' command"
+                                }
+                            }
+                        }
+                    ]
+                },
+                "create": {
+                    "description": "Create a new user",
+                    "handler": [
+                        {
+                            "component": "conditional",
+                            "output": {
+                                "if": "isLoggedIn == 'true'",
+                                "then": [
+                                    {
+                                        "component": "form",
+                                        "name": "userInfo",
+                                        "message": "Enter user information:",
+                                        "choices": [
+                                            {
+                                                "name": "username",
+                                                "message": "Username:"
+                                            },
+                                            {
+                                                "name": "email",
+                                                "message": "Email:"
+                                            },
+                                            {
+                                                "name": "password",
+                                                "message": "Password:"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "component": "select",
+                                        "name": "role",
+                                        "message": "Select user role:",
+                                        "choices": [
+                                            { "name": "Administrator", "value": "admin" },
+                                            { "name": "Operator", "value": "operator" },
+                                            { "name": "User", "value": "user" }
+                                        ]
+                                    },
+                                    {
+                                        "component": "spinner",
+                                        "output": "Creating user...",
+                                        "duration": 1500,
+                                        "conclusion": "succeed"
+                                    },
+                                    {
+                                        "component": "text",
+                                        "output": "User '{{username}}' created successfully with {{role}} role"
+                                    }
+                                ],
+                                "else": {
+                                    "component": "text",
+                                    "output": "Please log in first using 'login' command"
                                 }
                             }
                         }
